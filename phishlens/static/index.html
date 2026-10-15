@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PhishLens</title>
+<style>
+body{font-family:system-ui,sans-serif;max-width:760px;margin:30px auto;padding:0 16px;background:#f4f5fb;color:#14182b}
+h1 span{color:#4f46e5}.card{background:#fff;border:1px solid #e2e5f0;border-radius:14px;padding:16px;margin:14px 0}
+.row{display:flex;gap:8px}input{flex:1;padding:12px;border:1.5px solid #ccd;border-radius:10px;font:15px monospace}
+button{background:#4f46e5;color:#fff;border:0;border-radius:10px;padding:0 18px;font-weight:600;cursor:pointer}
+.badge{display:inline-block;color:#fff;font-weight:800;font-size:22px;padding:6px 16px;border-radius:10px}
+.Safe{background:#118a4a}.Suspicious{background:#b87400}.Malicious{background:#d42a37}
+.meter{height:12px;border-radius:8px;margin:16px 0;position:relative;background:linear-gradient(90deg,#118a4a 35%,#b87400 35% 70%,#d42a37 70%)}
+.pin{position:absolute;top:-5px;width:4px;height:22px;background:#14182b;border-radius:3px}
+.f{padding:8px 0;border-top:1px solid #e2e5f0}.f small{display:block;color:#667089}
+.bar{height:7px;border-radius:4px;margin-top:4px}.up{background:#d42a37}.dn{background:#118a4a}
+</style></head><body>
+<h1>Phish<span>Lens</span> 🛡️</h1><p>AI-based malicious URL detection with explanations.</p>
+<div class="card row"><input id="u" placeholder="http://paypa1-secure-login.xyz/verify"><button id="go">Scan</button></div>
+<div id="out"></div>
+<script>
+const $=id=>document.getElementById(id);
+async function scan(){
+  const url=$('u').value.trim(); if(!url) return;
+  const r=await fetch('/api/predict',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
+  const d=await r.json();
+  if(!r.ok){$('out').innerHTML='<div class="card">'+d.error+'</div>';return}
+  const pct=Math.round(d.probability*100), mx=Math.max(1,...d.indicators.map(i=>Math.abs(i.contribution)));
+  const esc=t=>String(t).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  $('out').innerHTML=`<div class="card"><span class="badge ${d.verdict}">${d.verdict}</span> &nbsp; Threat probability <b>${pct}%</b>
+  <div class="meter"><div class="pin" style="left:${pct}%"></div></div></div>
+  <div class="card"><b>Why this verdict</b>${d.indicators.map(i=>`<div class="f"><b>${i.contribution>0?'▲ RISK':'▼ TRUST'}</b> ${esc(i.feature)}<small>${esc(i.note)}</small>
+  <div class="bar ${i.contribution>0?'up':'dn'}" style="width:${Math.abs(i.contribution)/mx*100}%"></div></div>`).join('')}</div>`;
+}
+$('go').onclick=scan; $('u').addEventListener('keydown',e=>e.key==='Enter'&&scan());
+</script></body></html>
